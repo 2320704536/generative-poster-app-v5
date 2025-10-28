@@ -243,7 +243,7 @@ if autoplay:
         st.session_state.reroll += 1
         st.session_state.last_tick = now
         # trigger a rerun
-        st.experimental_rerun()
+        st.rerun()
 
 # ---------- Seed combine ----------
 if seed_in.strip() == "":
