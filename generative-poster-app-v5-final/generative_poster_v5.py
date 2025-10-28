@@ -236,14 +236,7 @@ with st.sidebar:
 
     seed_in = st.text_input("Seed (optional, int)", value="")
 
-# ---------- Autoplay logic ----------
-if autoplay:
-    now = time.time()
-    if now - st.session_state.last_tick >= interval:
-        st.session_state.reroll += 1
-        st.session_state.last_tick = now
-        # trigger a rerun
-        st.rerun()
+
 
 # ---------- Seed combine ----------
 if seed_in.strip() == "":
