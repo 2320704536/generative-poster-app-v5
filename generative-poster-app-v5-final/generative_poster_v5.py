@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 st.set_page_config(page_title="Generative Poster v5.2.1", layout="wide")
 st.title("Generative Abstract Poster v5.2.1")
-st.markdown("Interactive • Arts & Advanced Big Data  \nNow with Hi-Res & SVG export, Film Grain, and cleaner controls (Autoplay removed)")
+st.markdown("Stable Release — Cleaner, Faster, No Autoplay")
 
 # ---------- Helpers: palette ----------
 def clamp01(x): return max(0.0, min(1.0, x))
@@ -36,9 +36,7 @@ def vibrant_palette(k=6):
     cols = []
     for i in range(k):
         r,g,b = anchors[i % len(anchors)]
-        cols.append((clamp01(r+random.uniform(-0.05,0.05)),
-                     clamp01(g+random.uniform(-0.05,0.05)),
-                     clamp01(b+random.uniform(-0.05,0.05))))
+        cols.append((r,g,b))
     return cols
 
 def mono_palette(k=6):
@@ -81,94 +79,66 @@ def waves(center=(0.5,0.5), r=0.3, points=400, frequency=6, wobble=0.05):
     rad = r * (1 + wobble * np.sin(frequency * ang))
     return center[0] + rad*np.cos(ang), center[1] + rad*np.sin(ang)
 
-def rings(center=(0.5,0.5), base_r=0.3, count=4, wobble=0.1):
-    return [blob(center, base_r*(0.5+i*0.4), 200, wobble) for i in range(count)]
-
-def star(center=(0.5,0.5), points=5, r1=0.3, r2=0.15):
-    ang = np.linspace(0, 2*math.pi, points*2, endpoint=False)
-    rad = np.array([r1 if i%2==0 else r2 for i in range(points*2)])
-    x = center[0] + rad*np.cos(ang); y = center[1] + rad*np.sin(ang)
-    return np.append(x, x[0]), np.append(y, y[0])
-
-def spiral(center=(0.5,0.5), turns=3, points=500, r=0.4):
-    t = np.linspace(0, 2*math.pi*turns, points)
-    rad = np.linspace(0.01, r, points)
-    return center[0]+rad*np.cos(t), center[1]+rad*np.sin(t)
-
-def cloud(center=(0.5,0.5), r=0.3, blobs=6):
-    coords = []
-    for i in range(blobs):
-        ang = random.uniform(0, 2*math.pi); rr = r*random.uniform(0.6, 1.2)
-        cx = center[0] + r*0.6*math.cos(ang); cy = center[1] + r*0.6*math.sin(ang)
-        x, y = blob((cx,cy), rr*0.4, points=100, wobble=0.3)
-        coords.append((x,y))
-    return coords
-
 # ---------- Background ----------
 def set_background(ax, mode):
     if mode == "Off-white":
         ax.set_facecolor((0.98, 0.98, 0.97)); return "dark"
-    if mode == "Light gray":
-        ax.set_facecolor((0.92, 0.92, 0.92)); return "dark"
     if mode == "Dark":
         ax.set_facecolor((0.08, 0.08, 0.08)); return "light"
-    if mode == "Gradient":
-        grad = np.linspace(0.95, 0.75, 512).reshape(-1,1)
-        _ = ax.imshow(np.dstack([grad,grad,grad]), extent=[0,1,0,1], origin="lower", zorder=-10)
-        ax.set_facecolor((1,1,1,0)); return "dark"
     ax.set_facecolor((1,1,1)); return "dark"
 
 # ---------- Draw Poster ----------
 def draw_poster(shape="Blob", layers=8, wobble=0.15, palette_kind="Pastel", bg="Off-white",
-                seed=None, alpha_min=0.25, alpha_max=0.6, r_min=0.15, r_max=0.45,
-                palette_override=None, aspect="Portrait"):
+                seed=None, palette_override=None):
     if seed not in (None, "", 0):
         try:
             seed = int(seed); random.seed(seed); np.random.seed(seed)
         except:
             pass
-    if aspect == "Portrait":
-        fig, ax = plt.subplots(figsize=(7, 10))
-    elif aspect == "Landscape":
-        fig, ax = plt.subplots(figsize=(10, 7))
-    else:
-        fig, ax = plt.subplots(figsize=(8, 8))
-
+    fig, ax = plt.subplots(figsize=(7, 10))
     ax.axis("off")
     text_mode = set_background(ax, bg)
     cols = palette_override if palette_override else get_palette(palette_kind, 7)
-
     for _ in range(layers):
         cx, cy = random.random(), random.random()
-        rr = random.uniform(r_min, r_max)
+        rr = random.uniform(0.15, 0.45)
         color = random.choice(cols)
-        alpha = random.uniform(alpha_min, alpha_max)
-
+        alpha = random.uniform(0.25, 0.6)
         if shape == "Blob":
             x, y = blob((cx, cy), rr, wobble=wobble)
-            _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
-        elif shape == "Polygon"
+            ax.fill(x, y, color=color, alpha=alpha)
+        elif shape == "Polygon":
             x, y = polygon((cx, cy), sides=random.randint(3,8), r=rr, wobble=wobble)
-            _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
+            ax.fill(x, y, color=color, alpha=alpha)
         elif shape == "Waves":
             x, y = waves((cx, cy), rr, frequency=random.randint(4,8), wobble=wobble)
-            _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
-        elif shape == "Rings":
-            for x, y in rings((cx, cy), rr, count=random.randint(2,4), wobble=wobble):
-                _ = ax.plot(x, y, color=color, alpha=alpha, lw=2)
-        elif shape == "Star":
-            x, y = star((cx, cy), points=random.randint(5,8), r1=rr, r2=rr*0.5)
-            _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
-        elif shape == "Spiral":
-            x, y = spiral((cx, cy), turns=random.randint(2,4), r=rr)
-            _ = ax.plot(x, y, color=color, alpha=alpha, lw=2)
-        elif shape == "Cloud":
-            for x, y in cloud((cx, cy), rr):
-                _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
-
+            ax.fill(x, y, color=color, alpha=alpha)
     txt_color = (0.95,0.95,0.95) if text_mode == "light" else (0.1,0.1,0.1)
-    _ = ax.text(0.05, 0.95, "Generative Poster", fontsize=18, weight="bold", transform=ax.transAxes, color=txt_color)
-    _ = ax.text(0.05, 0.91, "Interactive • Arts & Advanced Big Data", fontsize=11, transform=ax.transAxes, color=txt_color)
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.text(0.05,0.95,"Generative Poster",fontsize=18,weight="bold",transform=ax.transAxes,color=txt_color)
+    ax.text(0.05,0.91,"Interactive - Arts & Advanced Big Data",fontsize=11,transform=ax.transAxes,color=txt_color)
+    ax.set_xlim(0,1); ax.set_ylim(0,1)
     return fig
 
+# ---------- Sidebar ----------
+with st.sidebar:
+    st.header("Custom Color (optional)")
+    use_custom = st.checkbox("Use custom color palette", value=False)
+    picked_hex = st.color_picker("Pick a base color", "#ff88aa")
+    custom_cols = custom_palette_from_hex(picked_hex, k=7) if use_custom else None
+    st.caption("Palette preview")
+    preview_cols = custom_cols if use_custom else get_palette("Pastel", 7)
+    st.pyplot(plt.figure(), use_container_width=True)
+    st.header("Controls")
+    shape = st.selectbox("Shape Type", ["Blob","Polygon","Waves"])
+    layers = st.slider("Number of Layers",1,25,10,1)
+    wobble = st.slider("Wobble Intensity",0.01,0.6,0.18,0.01)
+    palette_kind = st.selectbox("Palette",["Pastel","Vibrant","Mono","Random","Pink","Blue","Green"]) if not use_custom else "Custom Color"
+    bg_mode = st.selectbox("Background",["Off-white","Dark"])
+    if "reroll" not in st.session_state: st.session_state.reroll=0
+    if st.button("Randomize Now"): st.session_state.reroll+=1
+    seed_in = st.text_input("Seed (optional, int)",value="")
+
+# ---------- Render ----------
+seed_val = None if seed_in.strip()=="" else int(seed_in)
+fig = draw_poster(shape, layers, wobble, palette_kind, bg_mode, seed=seed_val, palette_override=custom_cols)
+st.pyplot(fig, use_container_width=True)
