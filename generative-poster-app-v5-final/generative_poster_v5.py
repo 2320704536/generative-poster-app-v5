@@ -1,6 +1,5 @@
 import random
 import math
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -8,9 +7,9 @@ import io
 from colorsys import rgb_to_hsv, hsv_to_rgb
 from PIL import Image, ImageEnhance, ImageFilter
 
-st.set_page_config(page_title="Generative Poster v5.2", layout="wide")
-st.title("Generative Abstract Poster v5.2")
-st.markdown("Interactive - Arts & Advanced Big Data  \nNow with Autoplay, Hi-Res & SVG export, Film Grain, and cleaner outputs")
+st.set_page_config(page_title="Generative Poster v5.2.1", layout="wide")
+st.title("Generative Abstract Poster v5.2.1")
+st.markdown("Interactive • Arts & Advanced Big Data  \nNow with Hi-Res & SVG export, Film Grain, and cleaner controls (Autoplay removed)")
 
 # ---------- Helpers: palette ----------
 def clamp01(x): return max(0.0, min(1.0, x))
@@ -148,7 +147,7 @@ def draw_poster(shape="Blob", layers=8, wobble=0.15, palette_kind="Pastel", bg="
         if shape == "Blob":
             x, y = blob((cx, cy), rr, wobble=wobble)
             _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
-        elif shape == "Polygon":
+        elif shape == "Polygon"
             x, y = polygon((cx, cy), sides=random.randint(3,8), r=rr, wobble=wobble)
             _ = ax.fill(x, y, color=color, alpha=alpha, edgecolor=(0,0,0,0))
         elif shape == "Waves":
@@ -169,130 +168,7 @@ def draw_poster(shape="Blob", layers=8, wobble=0.15, palette_kind="Pastel", bg="
 
     txt_color = (0.95,0.95,0.95) if text_mode == "light" else (0.1,0.1,0.1)
     _ = ax.text(0.05, 0.95, "Generative Poster", fontsize=18, weight="bold", transform=ax.transAxes, color=txt_color)
-    _ = ax.text(0.05, 0.91, "Interactive - Arts & Advanced Big Data", fontsize=11, transform=ax.transAxes, color=txt_color)
+    _ = ax.text(0.05, 0.91, "Interactive • Arts & Advanced Big Data", fontsize=11, transform=ax.transAxes, color=txt_color)
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     return fig
 
-def fig_to_pil(fig, dpi=300):
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
-    buf.seek(0)
-    img = Image.open(buf).convert("RGBA")
-    return img, buf
-
-def render_palette_preview(colors):
-    fig, ax = plt.subplots(figsize=(3.5, 0.5))
-    ax.axis("off")
-    n = len(colors)
-    for i, c in enumerate(colors):
-        _ = ax.add_patch(plt.Rectangle((i/n, 0), 1/n, 1, color=c, ec=(0,0,0,0)))
-    ax.set_xlim(0,1); ax.set_ylim(0,1)
-    return fig
-
-# ---------- Sidebar controls ----------
-with st.sidebar:
-    st.header("Custom Color (optional)")
-    use_custom = st.checkbox("Use custom color palette", value=False)
-    picked_hex = st.color_picker("Pick a base color", "#ff88aa")
-    custom_cols = custom_palette_from_hex(picked_hex, k=7) if use_custom else None
-    st.caption("If enabled, the app hides palette dropdown and uses your custom gradient palette.")
-
-    st.caption("Palette preview")
-    preview_cols = custom_cols if use_custom else get_palette("Pastel", 7)
-    prev_fig = render_palette_preview(preview_cols)
-    st.pyplot(prev_fig, use_container_width=True)
-
-    st.header("Controls")
-    shape = st.selectbox("Shape Type", ["Blob", "Polygon", "Waves", "Rings", "Star", "Spiral", "Cloud"])
-    layers = st.slider("Number of Layers", 1, 25, 10, 1)
-    wobble = st.slider("Wobble Intensity", 0.01, 0.6, 0.18, 0.01)
-
-    if not use_custom:
-        palette_kind = st.selectbox("Palette", ["Pastel","Vibrant","Mono","Random","Pink","Blue","Green"])
-    else:
-        palette_kind = "Custom Color"
-
-    bg_mode = st.selectbox("Background", ["Off-white","Light gray","Dark","Gradient"])
-    aspect = st.selectbox("Aspect Ratio", ["Portrait","Landscape","Square"])
-
-    st.subheader("Visual Controls")
-    alpha_min = st.slider("Alpha Min", 0.0, 1.0, 0.25, 0.01)
-    alpha_max = st.slider("Alpha Max", 0.0, 1.0, 0.60, 0.01)
-    r_min = st.slider("Shape Size Min", 0.05, 0.60, 0.15, 0.01)
-    r_max = st.slider("Shape Size Max", 0.05, 0.60, 0.45, 0.01)
-
-    st.subheader("Filters")
-    brightness = st.slider("Brightness", 0.5, 1.5, 1.00, 0.01)
-    contrast   = st.slider("Contrast",   0.5, 1.5, 1.00, 0.01)
-    blur_amt   = st.slider("Blur",       0.0, 5.0, 0.00, 0.1)
-    grain_amt  = st.slider("Film Grain", 0.0, 1.0, 0.00, 0.05)
-
-    st.subheader("Autoplay")
-    autoplay = st.checkbox("Enable autoplay", value=False)
-    interval = st.slider("Interval (seconds)", 1, 20, 5, 1)
-    if "last_tick" not in st.session_state: st.session_state.last_tick = time.time()
-    if "reroll" not in st.session_state: st.session_state.reroll = 0
-    if st.button("Randomize Now"): st.session_state.reroll += 1
-
-    seed_in = st.text_input("Seed (optional, int)", value="")
-
-# ---------- Autoplay logic ----------
-if autoplay:
-    now = time.time()
-    if now - st.session_state.last_tick >= interval:
-        st.session_state.reroll += 1
-        st.session_state.last_tick = now
-        # trigger a rerun
-        st.experimental_rerun()
-
-# ---------- Seed combine ----------
-if seed_in.strip() == "":
-    effective_seed = st.session_state.reroll if st.session_state.reroll > 0 else None
-else:
-    try:
-        base = int(seed_in)
-    except:
-        base = None
-    effective_seed = None if base is None else base + st.session_state.reroll
-
-# ---------- Render and post-process filters ----------
-fig = draw_poster(shape, layers, wobble, palette_kind, bg_mode, seed=effective_seed,
-                  alpha_min=alpha_min, alpha_max=alpha_max, r_min=r_min, r_max=r_max,
-                  palette_override=custom_cols, aspect=aspect)
-
-# Export options: DPI slider before rasterization
-st.subheader("Export Options")
-dpi_val = st.slider("PNG DPI (resolution)", 72, 600, 300, 10)
-
-# Convert figure to PIL at chosen DPI
-pil_img, raw_buf = fig_to_pil(fig, dpi=dpi_val)
-
-# Apply filters using PIL
-if abs(brightness - 1.0) > 1e-6:
-    pil_img = ImageEnhance.Brightness(pil_img).enhance(brightness)
-if abs(contrast - 1.0) > 1e-6:
-    pil_img = ImageEnhance.Contrast(pil_img).enhance(contrast)
-if blur_amt > 0:
-    pil_img = pil_img.filter(ImageFilter.GaussianBlur(blur_amt))
-if grain_amt > 0:
-    # film grain: add noise layer and blend
-    w, h = pil_img.size
-    noise = np.random.normal(0.5, 0.15, (h, w)).clip(0,1)
-    noise_img = Image.fromarray((noise*255).astype("uint8"), mode="L").convert("RGBA")
-    pil_img = Image.blend(pil_img, noise_img, alpha=grain_amt)
-
-# Show final image
-st.image(pil_img, use_container_width=True)
-
-# Downloads
-out_buf = io.BytesIO()
-pil_img.save(out_buf, format="PNG")
-st.download_button("Download Final PNG", data=out_buf.getvalue(), file_name="poster_v5.2.png", mime="image/png")
-
-# SVG (raw Matplotlib, filters not applied)
-svg_buf = io.BytesIO()
-fig.savefig(svg_buf, format="svg", bbox_inches="tight")
-st.download_button("Download Raw SVG (no filters)", data=svg_buf.getvalue(), file_name="poster_v5.2.svg", mime="image/svg+xml")
-
-st.markdown("---")
-st.caption(f"Palette: {('Custom ' + picked_hex) if use_custom else palette_kind} | Background: {bg_mode} | Shape: {shape} | Layers: {layers} | Wobble: {wobble:.2f} | Alpha: {alpha_min:.2f}-{alpha_max:.2f} | Size: {r_min:.2f}-{r_max:.2f} | Aspect: {aspect} | Brightness: {brightness:.2f} | Contrast: {contrast:.2f} | Blur: {blur_amt:.2f} | Grain: {grain_amt:.2f} | DPI: {dpi_val} | Reroll: {st.session_state.reroll}")
