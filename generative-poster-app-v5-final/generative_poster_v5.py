@@ -227,23 +227,12 @@ with st.sidebar:
     blur_amt   = st.slider("Blur",       0.0, 5.0, 0.00, 0.1)
     grain_amt  = st.slider("Film Grain", 0.0, 1.0, 0.00, 0.05)
 
-    st.subheader("Autoplay")
-    autoplay = st.checkbox("Enable autoplay", value=False)
-    interval = st.slider("Interval (seconds)", 1, 20, 5, 1)
-    if "last_tick" not in st.session_state: st.session_state.last_tick = time.time()
+    
     if "reroll" not in st.session_state: st.session_state.reroll = 0
     if st.button("Randomize Now"): st.session_state.reroll += 1
 
     seed_in = st.text_input("Seed (optional, int)", value="")
 
-# ---------- Autoplay logic ----------
-if autoplay:
-    now = time.time()
-    if now - st.session_state.last_tick >= interval:
-        st.session_state.reroll += 1
-        st.session_state.last_tick = now
-        # trigger a rerun
-        st.experimental_rerun()
 
 # ---------- Seed combine ----------
 if seed_in.strip() == "":
